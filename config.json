@@ -1,0 +1,6 @@
+{
+  "site_repo_path": "../agent-workbench",
+  "posts_dir": "posts",
+  "daily_time_local": "09:00",
+  "max_attempts": 3
+}
