@@ -33,6 +33,16 @@ def safety_check(text):
 
     return True, "ok"
 
+def generate_poem_stub(attempt):
+    # Deterministic fake outputs for testing
+    samples = [
+        "This is a quiet poem about light and morning.",
+        "Visit http://example.com for more poetry.",  # should fail
+        "Numbers everywhere 1234567890",              # should fail
+        "A small poem rests here, finished and gentle."
+    ]
+    return samples[attempt % len(samples)]
+
 base = os.path.dirname(os.path.abspath(__file__))
 
 def today_date_str():
@@ -58,9 +68,47 @@ def load_or_init_state(date_str):
 date_str = today_date_str()
 state = load_or_init_state(date_str)
 
-print("Today's state file: %s" % state_path_for(date_str))
-print("Status: %s" % state.get("status"))
-print("Attempts: %s" % state.get("attempts"))
+# Test output with print statements
+# print("Today's state file: %s" % state_path_for(date_str))
+# print("Status: %s" % state.get("status"))
+# print("Attempts: %s" % state.get("attempts"))
+# ok, reason = safety_check("This is a test poem.")
+# print("Safety check test: %s (%s)" % (ok, reason))
 
-ok, reason = safety_check("This is a test poem.")
-print("Safety check test: %s (%s)" % (ok, reason))
+if state["status"] == "PENDING":
+    print("Attempting generation...")
+
+    poem = generate_poem_stub(state["attempts"])
+    ok, reason = safety_check(poem)
+
+    print("Generated poem:", poem)
+    print("Safety:", ok, reason)
+
+    if ok:
+        # Save poem draft and mark READY
+        draft_path = os.path.join(base, "drafts", date_str + ".txt")
+        with open(draft_path, "w") as f:
+            f.write(poem)
+
+        state["status"] = "READY"
+        state["attempts"] = state.get("attempts", 0) + 1
+        state["ready_path"] = draft_path
+        print("Saved READY draft:", draft_path)
+
+    else:
+        # Count a failed attempt
+        state["attempts"] = state.get("attempts", 0) + 1
+
+        if state["attempts"] >= 3:
+            state["status"] = "FAILED"
+            state["error"] = "Failed safety checks 3 times. Shutting down until tomorrow."
+            print(state["error"])
+        else:
+            print("Not ready yet. Will try again next run.")
+
+    # Persist state
+    with open(state_path_for(date_str), "w") as f:
+        json.dump(state, f, indent=2, sort_keys=True)
+
+else:
+    print("No generation needed. Status:", state["status"])
