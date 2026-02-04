@@ -65,6 +65,42 @@ def load_or_init_state(date_str):
         json.dump(state, f, indent=2, sort_keys=True)
     return state
 
+def publish_today():
+    date_str = today_date_str()
+    state = load_or_init_state(date_str)
+
+    # Load config locally
+    with open(os.path.join(base, "config.json")) as f:
+        config = json.load(f)
+
+    if state.get("status") != "READY":
+        print("Nothing to publish. Status:", state.get("status"))
+        return
+
+    draft_path = os.path.join(base, "drafts", date_str + ".txt")
+    if not os.path.exists(draft_path):
+        print("Draft missing, cannot publish.")
+        return
+
+    with open(draft_path) as f:
+        poem = f.read()
+
+    # Write to site repo
+    site_repo = os.path.abspath(os.path.join(base, config["site_repo_path"]))
+    posts_dir = os.path.join(site_repo, config["posts_dir"])
+    if not os.path.exists(posts_dir):
+        os.makedirs(posts_dir)
+
+    out_path = os.path.join(posts_dir, date_str + ".md")
+    with open(out_path, "w") as f:
+        f.write(poem)
+
+    state["status"] = "PUBLISHED"
+    with open(state_path_for(date_str), "w") as f:
+        json.dump(state, f, indent=2, sort_keys=True)
+
+    print("Published to:", out_path)
+
 date_str = today_date_str()
 state = load_or_init_state(date_str)
 
@@ -112,3 +148,11 @@ if state["status"] == "PENDING":
 
 else:
     print("No generation needed. Status:", state["status"])
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "publish":
+        publish_today()
+    else:
+        # existing generation logic runs here
+        pass
