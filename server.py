@@ -25,6 +25,10 @@ def load_draft_text(date_str):
     with open(draft_path) as f:
         return f.read()
 
+def publish_today_via_app():
+    # Call the existing publish command in app.py
+    os.system("python app.py publish")
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         date_str = today_date_str()
@@ -45,11 +49,26 @@ class Handler(BaseHTTPRequestHandler):
         if draft:
             html.append("<h2>Today's Draft</h2>")
             html.append("<pre>%s</pre>" % draft.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
+            if state.get("status") == "READY":
+                html.append('<form method="POST" action="/publish">')
+                html.append('<button type="submit">Publish</button>')
+                html.append("</form>")
         else:
             html.append("<p>No draft available yet.</p>")
 
         html.append("</body></html>")
         self.wfile.write("".join(html))
+
+    def do_POST(self):
+        if self.path == "/publish":
+            publish_today_via_app()
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+            return
+
+        self.send_response(404)
+        self.end_headers()
 
 if __name__ == "__main__":
     port = 8000
