@@ -8,3 +8,5 @@ A bounded, human-in-the-loop daily poetry agent.
 - Publishes to a separate static site (agent-workbench)
 
 This project intentionally avoids full autonomy.
+
+Generated content is not covered by the MIT License unless explicitly stated.
